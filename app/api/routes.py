@@ -1,5 +1,4 @@
 from fastapi import APIRouter, UploadFile, File
-from app.services.workouts import process_workouts
 from app.services.db import Workout, SessionLocal, create_db_and_tables
 import pandas as pd
 
@@ -38,7 +37,7 @@ async def upload_file(file: UploadFile = File(...)):
 
 # Endpoint para obtener un workout individual por id desde la base de datos
 @router.get("/workouts/{workout_id}")
-async def get_workout(workout_id: int):
+async def get_workout(workout_id: int = 1):
     session = SessionLocal()
     workout = session.query(Workout).filter_by(id=workout_id).first()
     session.close()
