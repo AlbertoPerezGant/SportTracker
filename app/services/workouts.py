@@ -1,6 +1,4 @@
-
 import pandas as pd
-from io import BytesIO
 
 
 def get_all_workouts():

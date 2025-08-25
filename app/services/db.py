@@ -11,7 +11,7 @@ Base = declarative_base()
 class Workout(Base):
     __tablename__ = "workouts"
     id = Column(Integer, primary_key=True, index=True, autoincrement=True)
-    csv_id = Column(Integer, unique=True, index=True)
+    csv_id = Column(Integer, unique=True, index=True, nullable=True)
     date = Column(Date)
     duration_min = Column(Float)
     distance_km = Column(Float)

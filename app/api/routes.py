@@ -1,3 +1,8 @@
+# Endpoint para agregar un workout desde JSON
+from fastapi import Request
+from fastapi.responses import JSONResponse
+import datetime
+
 from fastapi import APIRouter, UploadFile, File
 from app.services.db import Workout, SessionLocal, create_db_and_tables
 import pandas as pd
@@ -7,6 +12,62 @@ router = APIRouter()
 
 # Inicializar la base de datos si es necesario
 create_db_and_tables()
+
+
+@router.post("/uploadJson")
+async def add_workout(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        return JSONResponse(status_code=400, content={"error": "Invalid JSON format."})
+
+    required_fields = ["date", "duration_min", "distance_km", "avg_hr", "max_hr", "calories"]
+    missing = [f for f in required_fields if f not in data]
+    if missing:
+        return JSONResponse(status_code=400, content={"error": f"Missing fields: {', '.join(missing)}"})
+
+    # Validar tipos y formato de fecha
+    try:
+        csv_id = data.get("csv_id", None)
+        if csv_id in [None, "", "null"]:
+            csv_id = None
+        else:
+            csv_id = int(csv_id)
+        date = data["date"]
+        # Permitir tanto 'YYYY-MM-DD' como datetime.date
+        if isinstance(date, str):
+            try:
+                date = datetime.datetime.strptime(date, "%Y-%m-%d").date()
+            except Exception:
+                return JSONResponse(status_code=400, content={"error": "Field 'date' must be in 'YYYY-MM-DD' format."})
+        duration_min = float(data["duration_min"])
+        distance_km = float(data["distance_km"])
+        avg_hr = int(data["avg_hr"])
+        max_hr = int(data["max_hr"])
+        calories = int(data["calories"])
+    except Exception as e:
+        return JSONResponse(status_code=400, content={"error": f"Invalid field types: {str(e)}"})
+
+    session = SessionLocal()
+    if csv_id is not None:
+        exists = session.query(Workout).filter_by(csv_id=csv_id).first()
+        if exists:
+            session.close()
+            return JSONResponse(status_code=409, content={"error": "Workout with this csv_id already exists."})
+    workout = Workout(
+        csv_id=csv_id,
+        date=date,
+        duration_min=duration_min,
+        distance_km=distance_km,
+        avg_hr=avg_hr,
+        max_hr=max_hr,
+        calories=calories
+    )
+    session.add(workout)
+    session.commit()
+    session.close()
+    return {"msg": "Workout added successfully."}
+
 
 @router.post("/upload/")
 async def upload_file(file: UploadFile = File(...)):
